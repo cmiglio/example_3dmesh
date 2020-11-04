@@ -1,0 +1,35 @@
+from visbrain.gui import Brain
+from visbrain.objects import BrainObj, SourceObj, SceneObj
+from scipy.io import loadmat
+import pandas as pd
+
+loc_path = 'W:\Locs'
+data = pd.read_csv('rates_by_chan.csv')
+# Define patient
+patient = 'PMR'
+data_p = data[data['Patient']==patient]
+
+# Load cortex
+cortex = loadmat(loc_path + '/' + patient + '/cortex.mat', squeeze_me=True)
+vert, faces = cortex['Vertices'], cortex['Faces'][:, [1, 0, 2]]
+
+# Get positions
+pos = data_p[['x', 'y', 'z']].values
+soz = data_p[data_p['Soz_dist'] == 0]
+pos_soz = soz[['x', 'y', 'z']].values
+
+# Create brain objects
+b_tr = BrainObj('Custom', vertices=vert, faces=faces, translucent=True)
+
+# Create source objects
+s_soz = SourceObj('SOZ', pos_soz, color='red', symbol='x', radius_max=8, radius_min=8)
+
+s_ripples = SourceObj('Ripples', pos, radius_max=16, radius_min=16)
+s_ripples.color_sources(data=data_p['rate'].values, cmap='viridis')
+
+s_pripples = SourceObj('Pathological ripples', pos, radius_max=16, radius_min=16)
+s_pripples.color_sources(data=data_p['rate pathologic'].values, cmap='viridis')
+
+# Open GUI
+vb = Brain(bgcolor='white', source_obj=[s_soz, s_ripples, s_pripples], brain_obj=b_tr)
+vb.show()
