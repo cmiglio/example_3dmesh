@@ -4,32 +4,43 @@ from scipy.io import loadmat
 import pandas as pd
 
 loc_path = 'W:\Locs'
-data = pd.read_csv('rates_by_chan.csv')
+path_res = 'Y:\cmigliorelli\Epilepsia_HSJD\Resultados\pyHFO'
+data = pd.read_csv(path_res + '/rates_by_chan.csv')
 # Define patient
-patient = 'PMR'
+patient = 'PAT_6'
 data_p = data[data['Patient']==patient]
 
 # Load cortex
 cortex = loadmat(loc_path + '/' + patient + '/cortex.mat', squeeze_me=True)
 vert, faces = cortex['Vertices'], cortex['Faces'][:, [1, 0, 2]]
-
 # Get positions
 pos = data_p[['x', 'y', 'z']].values
+lbl = (data_p['Channel'].values)
 soz = data_p[data_p['Soz_dist'] == 0]
 pos_soz = soz[['x', 'y', 'z']].values
+
 
 # Create brain objects
 b_tr = BrainObj('Custom', vertices=vert, faces=faces, translucent=True)
 
 # Create source objects
-s_soz = SourceObj('SOZ', pos_soz, color='red', symbol='x', radius_max=8, radius_min=8)
+s_soz = SourceObj('SOZ', pos_soz, color='red', symbol='square', radius_max=10, radius_min=10, visible=False)
+s_soz_2 = SourceObj('SOZ', pos_soz, color='red', symbol='square', radius_max=10, radius_min=10)
 
-s_ripples = SourceObj('Ripples', pos, radius_max=16, radius_min=16)
-s_ripples.color_sources(data=data_p['rate'].values, cmap='viridis')
+s_ripples = SourceObj('Ripples', pos, radius_max=20, radius_min=20,visible=False)
+s_ripples.color_sources(data=data_p['rate'].values, cmap='BuGn')
 
-s_pripples = SourceObj('Pathological ripples', pos, radius_max=16, radius_min=16)
-s_pripples.color_sources(data=data_p['rate pathologic'].values, cmap='viridis')
+s_pripples = SourceObj('Pathological ripples', pos, radius_max=20, radius_min=20, visible=False)
+s_pripples.color_sources(data=data_p['rate pathologic'].values, cmap='BuGn')
+
+# Create sources with areas
+rarea = data_p['rate'].values>.75*max(data_p['rate'])
+prarea = data_p['rate pathologic'].values>.75*max(data_p['rate pathologic'])
+
+s_rarea = SourceObj('Ripple area', pos[rarea], radius_max=30, radius_min=30, symbol='triangle_up',color='green')
+s_prarea = SourceObj('Pathological ripple area', pos[prarea], radius_max=30, radius_min=30, symbol='triangle_down', color='orange')
+
 
 # Open GUI
-vb = Brain(bgcolor='white', source_obj=[s_soz, s_ripples, s_pripples], brain_obj=b_tr)
+vb = Brain(bgcolor='white', source_obj=[s_soz, s_ripples, s_pripples,s_soz_2,s_prarea, s_rarea], brain_obj=b_tr)
 vb.show()
